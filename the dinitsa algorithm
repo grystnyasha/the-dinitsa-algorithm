@@ -1,0 +1,74 @@
+from collections import deque
+
+class Dinic:
+    def __init__(self, vertices):
+        self.V = vertices  # Количество вершин
+        self.graph = [[] for _ in range(vertices)]  # Список смежности
+        self.capacity = {}  # Пропускные способности рёбер
+
+    def add_edge(self, u, v, cap):
+        """Добавить ребро (u -> v) с пропускной способностью cap"""
+        self.graph[u].append(v)
+        self.graph[v].append(u)  # Добавляем обратное ребро для Residual Graph
+        self.capacity[(u, v)] = cap
+        self.capacity[(v, u)] = 0  # Изначально обратное ребро имеет нулевую пропускную способность
+
+    def bfs(self, source, sink):
+        """Построение слоистой сети с помощью BFS"""
+        self.level = [-1] * self.V  # Уровень вершин
+        self.level[source] = 0
+        queue = deque([source])
+
+        while queue:
+            u = queue.popleft()
+            for v in self.graph[u]:
+                if self.level[v] == -1 and self.capacity[(u, v)] > 0:  # Если вершина не посещена и есть пропускная способность
+                    self.level[v] = self.level[u] + 1
+                    queue.append(v)
+        return self.level[sink] != -1  # Возвращаем True, если можно достичь стока
+
+    def dfs(self, u, sink, flow):
+        """Поиск увеличивающего пути с помощью DFS"""
+        if u == sink:
+            return flow
+        for v in self.graph[u]:
+            if self.level[v] == self.level[u] + 1 and self.capacity[(u, v)] > 0:
+                min_flow = min(flow, self.capacity[(u, v)])
+                result = self.dfs(v, sink, min_flow)
+                if result > 0:
+                    self.capacity[(u, v)] -= result
+                    self.capacity[(v, u)] += result
+                    return result
+        return 0
+
+    def max_flow(self, source, sink):
+        """Основной метод для поиска максимального потока"""
+        total_flow = 0
+        while self.bfs(source, sink):  # Пока есть слоистая сеть
+            flow = float('inf')
+            while flow:
+                flow = self.dfs(source, sink, float('inf'))  # Ищем блокирующий поток
+                total_flow += flow
+        return total_flow
+
+
+# Пример использования
+if name == "__main__":
+    vertices = 6
+    dinic = Dinic(vertices)
+    
+    # Добавляем рёбра (u, v, capacity)
+    dinic.add_edge(0, 1, 10)
+    dinic.add_edge(0, 2, 10)
+    dinic.add_edge(1, 2, 2)
+    dinic.add_edge(1, 3, 4)
+    dinic.add_edge(1, 4, 8)
+    dinic.add_edge(2, 4, 9)
+    dinic.add_edge(3, 5, 10)
+    dinic.add_edge(4, 3, 6)
+    dinic.add_edge(4, 5, 10)
+
+    source = 0  # Источник
+    sink = 5    # Сток
+
+    print("Максимальный поток:", dinic.max_flow(source, sink))
